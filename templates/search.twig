@@ -1,0 +1,87 @@
+{% include 'header.twig' %}
+
+<h2>Search Vehicles</h2>
+
+<div class="card mb-4">
+    <div class="card-body" style="padding: 2.5rem;">
+        <form action="search.php" method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="keyword" class="form-label">Keyword</label>
+                <input type="text" class="form-control form-control-lg" id="keyword" name="keyword" value="{{ keyword }}" autocomplete="off">
+            </div>
+            <div class="col-md-2">
+                <label for="type" class="form-label">Type</label>
+                <select id="type" name="type" class="form-select form-select-lg">
+                    <option value="">All</option>
+                    <option value="Car" {% if type == 'Car' %}selected{% endif %}>Car</option>
+                    <option value="Bike" {% if type == 'Bike' %}selected{% endif %}>Bike</option>
+                    <option value="Scooter" {% if type == 'Scooter' %}selected{% endif %}>Scooter</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Price Range ($)</label>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text">Min</span>
+                    <input type="number" class="form-control" name="min_rate" placeholder="0" value="{{ min_rate }}">
+                    <span class="input-group-text">Max</span>
+                    <input type="number" class="form-control" name="max_rate" placeholder="100" value="{{ max_rate }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-lg w-100" style="height: 48px;">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h3>Results ({{ results_count }} found)</h3>
+<table class="table table-striped table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>Plate</th>
+            <th>Model</th>
+            <th>Type</th>
+            <th>Daily Rate</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if vehicles is not empty %}
+            {% for vehicle in vehicles %}
+                <tr>
+                    <td>{{ vehicle.plate_number }}</td>
+                    <td>{{ vehicle.model }}</td>
+                    <td>{{ vehicle.type }}</td>
+                    <td>${{ vehicle.daily_rate|number_format(2) }}</td>
+                    <td>
+                        {% if vehicle.current_status == 'Available' %}
+                            <span class="badge bg-success">Available</span>
+                        {% else %}
+                            <span class="badge bg-danger">Rented</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if session.user_id %}
+                            {% if vehicle.current_status == 'Available' %}
+                                <a href="book.php?id={{ vehicle.id }}" class="btn btn-sm btn-success">Book Now</a>
+                            {% else %}
+                                <span class="text-muted">Not Available</span>
+                            {% endif %}
+                        {% else %}
+                            <a href="login.php" class="btn btn-sm btn-outline-primary">Login to Book</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="6" class="text-center">No vehicles match your search criteria.</td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+<script src="../assets/js/search-autocomplete.js"></script>
+
+{% include 'footer.twig' %}

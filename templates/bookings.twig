@@ -1,0 +1,63 @@
+{% include 'header.twig' %}
+
+<h2>{% if session.is_admin %}All Bookings{% else %}My Bookings{% endif %}</h2>
+
+{% if message %}
+    <div class="alert alert-success">{{ message }}</div>
+{% endif %}
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    {% if session.is_admin %}
+                        <th>User</th>
+                    {% endif %}
+                    <th>Vehicle</th>
+                    <th>Plate</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Cost</th>
+                    <th>Status</th>
+                    <th>Booked On</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if bookings is not empty %}
+                    {% for booking in bookings %}
+                        <tr>
+                            {% if session.is_admin %}
+                                <td><strong>{{ booking.username }}</strong></td>
+                            {% endif %}
+                            <td>{{ booking.model }}</td>
+                            <td>{{ booking.plate_number }}</td>
+                            <td>{{ booking.start_date|date("M d, Y") }}</td>
+                            <td>{{ booking.end_date|date("M d, Y") }}</td>
+                            <td>${{ booking.total_cost|number_format(2) }}</td>
+                            <td><span class="badge bg-info">{{ booking.booking_status }}</span></td>
+                            <td>{{ booking.created_at|date("M d, Y") }}</td>
+                            <td>
+                                <a href="edit_booking.php?id={{ booking.booking_id }}" class="btn btn-sm btn-warning">Edit</a>
+                                <form action="bookings.php" method="POST" style="display:inline;" onsubmit="return confirm('Delete this booking?');">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="booking_id" value="{{ booking.booking_id }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="{% if session.is_admin %}9{% else %}8{% endif %}" class="text-center">No bookings yet.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% include 'footer.twig' %}
