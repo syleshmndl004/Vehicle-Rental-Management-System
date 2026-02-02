@@ -1,0 +1,36 @@
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Cache files
+cache/twig/*
+*.cache
+
+# Composer dependencies (keep lock file, not node_modules equivalent)
+vendor/composer/installed.php
+vendor/composer/installed.json
+
+# Temporary files
+tmp/
+temp/
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
