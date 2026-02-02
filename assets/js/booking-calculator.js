@@ -1,41 +1,71 @@
 /**
- * Booking Calculator - Real-time Cost Calculation
+ * BOOKING CALCULATOR - REAL-TIME COST CALCULATION
  * 
- * Purpose: Automatically calculates total rental cost based on selected dates
- * Updates in real-time as user changes dates (no page reload)
+ * WHAT THIS DOES:
+ * - Automatically calculates total rental cost as user selects dates
+ * - Formula: (Number of days) × (Daily rate) = Total cost
+ * - Updates display instantly (no page reload needed - Ajax)
+ * - Validates that end date is not before start date
+ * - Works seamlessly with availability checker
  * 
- * For Viva:
- * - Part of Ajax functionality for better user experience
- * - Calculates: (Number of days) × (Daily rate) = Total cost
- * - Prevents invalid date selections (end before start)
- * - Works together with availability checker
+ * WHY NO PAGE RELOAD:
+ * - Instant feedback keeps users engaged
+ * - User can try different dates and see prices immediately
+ * - Better user experience than traditional form submission
+ * - Reduces server load (calculations done in browser)
+ * 
+ * EXAMPLE CALCULATION:
+ * - Daily rate: $50
+ * - Start date: Feb 2 (Monday)
+ * - End date: Feb 5 (Thursday)
+ * - Rental period: 3 days
+ * - Total cost: 3 × $50 = $150
  */
 
-// Wait for page to fully load before executing
+// Wait for entire page to load before running
+// Ensures all HTML elements exist
 document.addEventListener('DOMContentLoaded', function() {
-    // Get references to HTML form elements
-    const startDateInput = document.getElementById('start_date'); // Start date picker
-    const endDateInput = document.getElementById('end_date'); // End date picker
-    const dailyRateEl = document.getElementById('daily-rate'); // Vehicle's daily rate
-    const totalCostSpan = document.getElementById('total-cost'); // Where total is displayed
-    const dateErrorDiv = document.getElementById('date-error'); // Error message area
-    const submitButton = document.getElementById('submit-button'); // Booking confirmation button
+    // ===== GET HTML ELEMENT REFERENCES =====
+    // Get all the form fields and display areas we need
+    const startDateInput = document.getElementById('start_date');  // Rental start date picker
+    const endDateInput = document.getElementById('end_date');      // Rental end date picker
+    const dailyRateEl = document.getElementById('daily-rate');     // Element showing daily price
+    const totalCostSpan = document.getElementById('total-cost');   // Where total price displays
+    const dateErrorDiv = document.getElementById('date-error');    // Error message area
+    const submitButton = document.getElementById('submit-button'); // Booking button
 
-    // Check if all required elements exist (defensive programming)
+    // ===== DEFENSIVE PROGRAMMING =====
+    // If we're not on booking page (elements don't exist), exit gracefully
     if (!startDateInput || !endDateInput || !dailyRateEl) {
-        return; // Exit if not on booking page
+        return; // Stop execution
     }
 
-    // Extract daily rate value from the page (convert text to number)
+    // ===== EXTRACT DAILY RATE =====
+    // Get daily rate value from HTML element
+    // parseFloat() converts text to decimal number
+    // Example: "50.00" becomes 50.00
     const dailyRate = parseFloat(dailyRateEl.textContent);
     
-    // Get today's date and set as minimum selectable date
-    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
-    startDateInput.setAttribute('min', today); // User cannot select past dates
+    // ===== SET DATE CONSTRAINTS =====
+    // Get today's date in YYYY-MM-DD format
+    // Prevent selecting dates in the past
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.setAttribute('min', today); // Can't book for past dates
 
-    // Main calculation function - runs when dates change
+    /**
+     * COST CALCULATION FUNCTION
+     * Runs whenever user changes either date field
+     * 
+     * CALCULATION LOGIC:
+     * 1. Get start and end dates from form
+     * 2. Calculate number of days between dates
+     * 3. Multiply days × daily rate = total cost
+     * 4. Display result to user
+     */
     function calculateCost() {
-        // Create Date objects from user selections
+        // ===== CREATE DATE OBJECTS =====
+        // Convert string dates to JavaScript Date objects
+        // Allows date arithmetic and comparison
         const startDate = new Date(startDateInput.value);
         const endDate = new Date(endDateInput.value);
 

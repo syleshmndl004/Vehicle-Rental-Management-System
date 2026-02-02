@@ -1,49 +1,63 @@
 <?php
 /**
- * Database Configuration File
+ * DATABASE CONFIGURATION FILE
  * 
- * Purpose: Establishes connection to MySQL database for the Vehicle Rental Management System
- * This file is included in all pages that need database access
+ * This file handles the connection to the MySQL database
+ * It is included in every page that needs to read or write data from the database
  * 
- * Security Note: In production, store credentials in environment variables
- * For Viva: Explain that this uses MySQLi (MySQL Improved) extension for better security
+ * WHAT THIS DOES:
+ * - Establishes connection to vehicle rental database
+ * - Automatically detects if running on local computer or web server
+ * - Uses appropriate credentials based on the environment
+ * - Implements security by using MySQLi extension with prepared statements
  */
 
-// Database server details - Auto-detect environment
-// Use server credentials on production, localhost for local development
+// Define the database server location (where MySQL is running)
 $servername = "localhost";
 
-// Server credentials (for deployment)
-// Username: np02cs4s250016
-// Password: xMztbMWI6Q
-// Database: np02cs4s250016
+// Server credentials for production/web server deployment
+// These will be used when the application is running on the actual web server
+$servername = "localhost";
 
-// Auto-detect: Use server credentials if on remote server, otherwise localhost
+// Check if this is running on local computer (like XAMPP) or on web server
+// strpos() searches for substring; if found returns position, if not returns false
 $is_local = ($_SERVER['HTTP_HOST'] === 'localhost' || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false);
 
+// Use different database credentials based on environment
 if ($is_local) {
-    // Local development (XAMPP)
+    // For local development using XAMPP:
+    // - Username is 'root' (default XAMPP admin)
+    // - Password is empty (default XAMPP)
+    // - Database name is 'vehicle_rental_db'
     $username = "root";
     $password = "";
     $dbname = "vehicle_rental_db";
 } else {
-    // Production server
+    // For production/live server:
+    // - Use actual web hosting credentials
+    // - Different database name on web server
     $username = "np02cs4s250016";
     $password = "xMztbMWI6Q";
     $dbname = "np02cs4s250016";
 }
 
-// Create new MySQLi connection object
-// MySQLi provides prepared statements which prevent SQL injection attacks
+// Create database connection using MySQLi
+// MySQLi is better than old MySQL because:
+// 1. Supports prepared statements (prevents SQL injection attacks)
+// 2. Supports multiple statements
+// 3. Enhanced database functionality
+// 4. Object-oriented interface
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check if connection was successful
-// If connection fails, stop execution and show error message
+// Check if connection failed
+// If there's an error connecting to database, show error and stop execution
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Set character encoding to UTF-8 to support international characters
-// This prevents issues with special characters in vehicle names, etc.
+// Set character encoding to UTF-8MB4
+// This allows the database to store special characters properly
+// For example: Nepali characters, emoji, multiple languages
+// UTF-8MB4 is the modern standard that supports all Unicode characters
 $conn->set_charset("utf8mb4");
 ?>

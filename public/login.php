@@ -1,47 +1,99 @@
 <?php
 /**
- * Login Page - Handles both display and authentication
+ * LOGIN PAGE - USER AUTHENTICATION
+ * 
+ * WHAT THIS DOES:
+ * - Displays login form where users enter email and password
+ * - Handles login submissions via AJAX (no page reload)
+ * - Validates user credentials against database
+ * - Creates secure session if credentials are correct
+ * - Redirects users to dashboard after successful login
+ * 
+ * SECURITY FEATURES:
+ * - Input filtering: filter_var() removes dangerous characters
+ * - Password verification: password_verify() uses bcrypt hashing
+ * - Session regeneration: Creates new session ID after login
+ * - Prepared statements: Prevents SQL injection attacks
+ * - HTTPS recommended: Set session.cookie_secure = 1 in production
  */
 
+// Start PHP session to store user information
 session_start();
 
-// HANDLE LOGIN SUBMISSION (Ajax)
+// ===== HANDLE LOGIN FORM SUBMISSION =====
+// This section runs only when user submits the login form via AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'login') {
+    // Send JSON response header (not HTML)
     header('Content-Type: application/json');
+    
+    // Include database connection
     require_once('../config/db.php');
     
+    // SECURITY: Filter and clean email input
+    // filter_var() removes spaces and special characters
+    // FILTER_SANITIZE_EMAIL removes invalid email characters
     $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+    
+    // Get password (no filtering, will compare with hashed version)
     $password = $_POST['password'] ?? '';
     
+    // SECURITY: Validate email format using FILTER_VALIDATE_EMAIL
+    // Ensures email looks like a real email address
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         echo json_encode(['success' => false, 'message' => 'Invalid email format.']);
         exit();
     }
     
+    // SQL QUERY with placeholder (?)
+    // Placeholder prevents SQL injection - user input doesn't directly enter SQL
     $sql = "SELECT id, username, password, is_admin FROM users WHERE email = ?";
+    
+    // Create prepared statement
     $stmt = $conn->prepare($sql);
+    
+    // Bind parameter: "s" = string type, $email = actual value
+    // Prepared statements safely insert values into SQL query
     $stmt->bind_param("s", $email);
+    
+    // Execute the query
     $stmt->execute();
+    
+    // Get results from database
     $result = $stmt->get_result();
+    
+    // Fetch as associative array (easy to access by column name)
     $user = $result->fetch_assoc();
     
+    // ===== VERIFY CREDENTIALS =====
+    // Check if user exists AND password matches
+    // password_verify() safely compares plain password with bcrypt hash
     if ($user && password_verify($password, $user['password'])) {
+        // SECURITY: Regenerate session ID after login
+        // Prevents session fixation attacks
         session_regenerate_id(true);
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['is_admin'] = (bool)$user['is_admin'];
         
+        // Store user data in session (available throughout their session)
+        $_SESSION['user_id'] = $user['id'];                    // User's database ID
+        $_SESSION['username'] = $user['username'];            // User's display name
+        $_SESSION['is_admin'] = (bool)$user['is_admin'];      // Admin privileges flag
+        
+        // Send success response to AJAX
         echo json_encode(['success' => true, 'message' => 'Login successful!']);
     } else {
+        // User not found or password incorrect
         echo json_encode(['success' => false, 'message' => 'Invalid email or password.']);
     }
     
+    // Close database connections
     $stmt->close();
     $conn->close();
+    
+    // Stop execution (don't display HTML)
     exit();
 }
 
-// DISPLAY LOGIN PAGE
+// ===== DISPLAY LOGIN PAGE HTML =====
+// This section runs if user just opened the page (no form submission)
 ?>
 <!DOCTYPE html>
 <html lang="en">

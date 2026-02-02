@@ -1,53 +1,83 @@
 <?php
 /**
- * Register Page - Handles both display and registration
+ * REGISTRATION PAGE - NEW USER ACCOUNT CREATION
+ * 
+ * WHAT THIS DOES:
+ * - Displays registration form for new users
+ * - Validates all user inputs (username, email, password, CAPTCHA)
+ * - Checks if email already exists in database
+ * - Hashes password using bcrypt algorithm
+ * - Creates new user account in database
+ * 
+ * SECURITY FEATURES:
+ * - CAPTCHA protection: Prevents bot registrations
+ * - Password hashing: bcrypt makes passwords unreadable even to admin
+ * - Input validation: Ensures data meets requirements
+ * - Email uniqueness: Prevents duplicate accounts
+ * - Prepared statements: Prevents SQL injection
+ * - Password confirmation: Users enter password twice to avoid typos
+ * - Minimum password length: Ensures stronger passwords
  */
 
+// Start PHP session
 session_start();
 
-// HANDLE REGISTRATION SUBMISSION (Ajax)
+// ===== HANDLE REGISTRATION FORM SUBMISSION =====
+// This section runs only when user submits the registration form via AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'register') {
+    // Send JSON response header (not HTML)
     header('Content-Type: application/json');
+    
+    // Include database connection
     require_once('../config/db.php');
     
-    $username = trim($_POST['username'] ?? '');
-    $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
-    $password = $_POST['password'] ?? '';
-    $password_confirm = $_POST['password_confirm'] ?? '';
-    $captcha_input = $_POST['captcha'] ?? '';
-    $captcha_session = $_SESSION['captcha'] ?? '';
+    // SECURITY: Filter and clean all input data
+    $username = trim($_POST['username'] ?? '');  // Remove spaces, not hashed
+    $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);  // Remove invalid email chars
+    $password = $_POST['password'] ?? '';        // Will be hashed later
+    $password_confirm = $_POST['password_confirm'] ?? '';  // For verification
+    $captcha_input = $_POST['captcha'] ?? '';    // User's CAPTCHA answer
+    $captcha_session = $_SESSION['captcha'] ?? '';  // Correct answer stored in session
     
-    // Validation
+    // ===== VALIDATION CHECKS =====
+    // Check 1: All required fields are filled
     if (empty($username) || empty($email) || empty($password)) {
         echo json_encode(['success' => false, 'message' => 'All fields are required.']);
         exit();
     }
     
+    // Check 2: Email format is valid
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         echo json_encode(['success' => false, 'message' => 'Invalid email format.']);
         exit();
     }
     
+    // Check 3: Password and confirmation match
     if ($password !== $password_confirm) {
         echo json_encode(['success' => false, 'message' => 'Passwords do not match.']);
         exit();
     }
     
+    // Check 4: Password is strong enough (minimum 6 characters)
     if (strlen($password) < 6) {
         echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters.']);
         exit();
     }
     
+    // Check 5: CAPTCHA is correct (prevents bot registrations)
     if ($captcha_input !== $captcha_session) {
         echo json_encode(['success' => false, 'message' => 'Invalid CAPTCHA code.']);
         exit();
     }
     
-    // Check if email exists
+    // ===== CHECK IF EMAIL ALREADY EXISTS =====
+    // Prevents duplicate user accounts with same email
     $sql = "SELECT id FROM users WHERE email = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
     $stmt->execute();
+    
+    // If email exists, reject registration
     if ($stmt->get_result()->num_rows > 0) {
         echo json_encode(['success' => false, 'message' => 'Email already registered.']);
         $stmt->close();
@@ -56,16 +86,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     $stmt->close();
     
-    // Insert user
+    // ===== HASH PASSWORD WITH BCRYPT =====
+    // password_hash() uses bcrypt algorithm (industry standard)
+    // PASSWORD_DEFAULT uses the strongest available algorithm
+    // Once hashed, password cannot be reversed (one-way encryption)
+    // Even if database is stolen, passwords are unreadable
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+    
+    // ===== INSERT NEW USER INTO DATABASE =====
     $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
     $stmt = $conn->prepare($sql);
+    
+    // Bind parameters: "sss" = three string values
+    // Placeholders prevent SQL injection
     $stmt->bind_param("sss", $username, $email, $hashed_password);
     
+    // Execute the INSERT query
     if ($stmt->execute()) {
+        // Success! Remove CAPTCHA from session so user can't reuse it
         unset($_SESSION['captcha']);
+        
+        // Send success response
         echo json_encode(['success' => true, 'message' => 'Registration successful! Redirecting to login...']);
     } else {
+        // Database error occurred
         echo json_encode(['success' => false, 'message' => 'Registration failed. Please try again.']);
     }
     

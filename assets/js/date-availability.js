@@ -1,67 +1,96 @@
 /**
- * Date Availability Checker - Ajax Real-time Booking Conflict Detection
+ * DATE AVAILABILITY CHECKER - REAL-TIME BOOKING CONFLICT DETECTION
  * 
- * Purpose: Automatically checks if vehicle is available for selected dates
- * Method: Ajax call to server on every date change (no page reload)
+ * WHAT THIS DOES:
+ * - Runs automatically when user selects booking dates
+ * - Sends AJAX request to server checking if dates are available
+ * - Shows loading spinner while checking
+ * - Enables/disables submit button based on availability
+ * - Displays green "Available" or red "Unavailable" message
+ * - Prevents user from booking unavailable dates
  * 
- * For Viva - KEY REQUIREMENT:
- * - This implements the "Auto-check available dates" Ajax feature
- * - Prevents double-booking by detecting date conflicts in real-time
- * - Shows visual feedback (green=available, red=unavailable)
- * - Only enables booking button when dates are available
- * - Improves user experience with instant feedback
+ * WHY AJAX (No Page Reload):
+ * - Instant feedback as user selects dates
+ * - Much better user experience than page reloads
+ * - Shows real-time availability without delays
+ * - Allows users to try different dates quickly
+ * 
+ * SECURITY FEATURES:
+ * - Validates dates on client-side first (prevent invalid requests)
+ * - Server validates again (defense in depth)
+ * - Prevents booking of past dates
+ * - Date range validation (end date can't be before start)
  */
 
-// Wait for page to fully load before executing
+// Wait for entire page to load before running JavaScript
+// Ensures HTML elements exist when we try to access them
 document.addEventListener('DOMContentLoaded', function() {
-    // Get references to all required HTML elements
-    const startDateInput = document.getElementById('start_date'); // Start date picker
-    const endDateInput = document.getElementById('end_date'); // End date picker
-    const dateErrorDiv = document.getElementById('date-error'); // Error message area
-    const submitButton = document.getElementById('submit-button'); // Booking button
-    const availabilityStatus = document.getElementById('availability-status'); // Status message area
+    // ===== GET REFERENCES TO HTML ELEMENTS =====
+    // Get the HTML input fields by their IDs
+    // These are the date picker fields on the booking form
+    const startDateInput = document.getElementById('start_date');  // When rental starts
+    const endDateInput = document.getElementById('end_date');      // When rental ends
+    const dateErrorDiv = document.getElementById('date-error');    // Error message display
+    const submitButton = document.getElementById('submit-button'); // Submit booking button
+    const availabilityStatus = document.getElementById('availability-status');  // Status message
     
-    // Verify we're on the booking page (defensive programming)
+    // ===== DEFENSIVE PROGRAMMING =====
+    // If we're not on the booking page (elements don't exist), exit gracefully
+    // Prevents errors if this script is included on other pages
     if (!startDateInput || !endDateInput) {
-        return; // Exit if required elements don't exist
+        return; // Stop execution
     }
 
-    // Get vehicle ID from URL parameter (which vehicle is being booked)
+    // ===== GET VEHICLE ID FROM URL =====
+    // Extract vehicle ID from URL like: book.php?id=5
+    // URLSearchParams is modern way to parse URL parameters
     const vehicleId = new URLSearchParams(window.location.search).get('id');
     
+    // ===== SET MINIMUM DATE =====
     // Get today's date in YYYY-MM-DD format
+    // toISOString() returns date in ISO format, split gets date part
     const today = new Date().toISOString().split('T')[0];
-    startDateInput.setAttribute('min', today); // Prevent selecting past dates
+    
+    // Prevent user from selecting dates in the past
+    // This is client-side validation (server does this too)
+    startDateInput.setAttribute('min', today);
 
     /**
-     * Main function - Checks vehicle availability for selected dates
-     * Called automatically when user changes start or end date
+     * MAIN FUNCTION - Check if vehicle is available for selected dates
+     * Called automatically when user changes either date field
      */
     function checkAvailability() {
-        // Get current date values from form
+        // ===== GET CURRENT DATE VALUES =====
+        // Read what dates user selected
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
 
-        // Don't check if either date is missing
+        // If either date is missing, can't check availability
+        // User hasn't selected both dates yet
         if (!startDate || !endDate) {
-            submitButton.disabled = true; // Keep button disabled
-            return;
+            submitButton.disabled = true; // Keep button disabled until both dates selected
+            return; // Stop execution
         }
 
-        // Client-side validation: Ensure end date is not before start date
+        // ===== CLIENT-SIDE DATE VALIDATION =====
+        // Ensure end date is not before start date
+        // Create JavaScript Date objects for comparison
         const start = new Date(startDate);
         const end = new Date(endDate);
         
+        // If end date is before start date, invalid range
         if (end < start) {
-            submitButton.disabled = true;
+            submitButton.disabled = true; // Disable submit
             if (availabilityStatus) {
                 availabilityStatus.style.display = 'none';
             }
-            return; // Don't check availability for invalid date range
+            return; // Don't send request to server
         }
 
-        // Show loading indicator while checking
+        // ===== SHOW LOADING INDICATOR =====
+        // Tell user we're checking availability
         if (availabilityStatus) {
+            // Display loading spinner and message
             availabilityStatus.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div> Checking availability...';
             availabilityStatus.className = 'alert alert-info mt-3';
             availabilityStatus.style.display = 'block';
