@@ -155,7 +155,6 @@ V.R.M/
 
 ## 🔐 Security Implementation
 
-See [SECURITY.md](SECURITY.md) for detailed security documentation.
 
 **Key Security Features:**
 - All database queries use prepared statements
