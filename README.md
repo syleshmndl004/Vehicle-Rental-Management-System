@@ -237,9 +237,8 @@ Recommended tools:
 - Loading states
 - Error handling with user-friendly messages
 
-## 🚧 Future Enhancements (Optional)
+## 🚧 Future Enhancements 
 
-- Template Engine integration (Twig/Smarty)
 - Email notifications
 - Payment integration
 - Admin dashboard
