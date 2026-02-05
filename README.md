@@ -99,6 +99,7 @@ V.R.M/
 │       └── landing.js             # Landing page auth
 ├── config/
 │   └── db.php                     # Database configuration
+    |----twig.php                  #Template Configuration
 ├── includes/
 │   ├── functions.php              # Security & helper functions
 │   ├── header.php                 # Common header
